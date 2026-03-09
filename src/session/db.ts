@@ -3,7 +3,10 @@
  * schema so that events written by OMP hooks are visible to the MCP server
  * (ctx_search, ctx_stats, etc.) and vice versa.
  *
- * Schema mirrors context-mode/src/store.ts.
+ * Schema mirrors context-mode/src/store.ts — that file is NOT exported from
+ * the context-mode npm package (it is a CLI/MCP server, not a library), so we
+ * maintain a compatible copy here.  Call verifySchemaCompat() after the MCP
+ * server starts to detect drift between our DDL and context-mode's live DB.
  */
 
 import Database from "better-sqlite3";
@@ -237,12 +240,96 @@ export class SessionDB {
       .run(sessionId, filePath, content, Date.now());
   }
 
+  /**
+   * Return the column names for a table in this database.
+   * Used by verifySchemaCompat() and schema snapshot tests.
+   */
+  getTableColumns(tableName: string): string[] {
+    const rows = this.db
+      .prepare(`PRAGMA table_info(${tableName})`)
+      .all() as Array<{ name: string }>;
+    return rows.map((r) => r.name);
+  }
+
   close(): void {
     this.db.close();
     cache.delete(
       (this.db as unknown as { name: string }).name ?? "",
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Schema compatibility guard
+// ---------------------------------------------------------------------------
+
+/**
+ * The minimum columns our extension reads/writes in each table.
+ * context-mode may add extra columns at any time — that is fine.
+ * If any of THESE columns disappear or are renamed we log a warning.
+ */
+export const REQUIRED_COLUMNS: Record<string, readonly string[]> = {
+  sessions:   ["id", "projectDir", "createdAt", "compactCount", "cleanupFlag"],
+  events:     ["id", "sessionId", "eventType", "data", "timestamp"],
+  snapshots:  ["sessionId", "snapshotXml", "createdAt"],
+  rule_files: ["sessionId", "filePath", "content", "capturedAt"],
+};
+
+/**
+ * Open the on-disk DB that context-mode created and verify every column in
+ * REQUIRED_COLUMNS still exists.  Returns true if compatible, false if any
+ * required column is absent (in which case warnings are already logged).
+ *
+ * Safe to call with a path that doesn't exist yet — returns true (no DB means
+ * context-mode hasn't initialised yet, not a mismatch).
+ */
+export function verifySchemaCompat(
+  projectDir: string,
+  logger: { warn: (msg: string, ...args: unknown[]) => void },
+): boolean {
+  const dbPath = getSessionDBPath(projectDir);
+  if (!fs.existsSync(dbPath)) return true;
+
+  let db: Database.Database | undefined;
+  let ok = true;
+
+  try {
+    db = new Database(dbPath, { readonly: true });
+
+    for (const [table, required] of Object.entries(REQUIRED_COLUMNS)) {
+      const existing = new Set(
+        (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>)
+          .map((r) => r.name),
+      );
+
+      if (existing.size === 0) {
+        logger.warn(
+          `[context-mode] schema drift: table "${table}" is missing from context-mode DB — ` +
+          "session continuity may be degraded. Check context-mode version.",
+        );
+        ok = false;
+        continue;
+      }
+
+      for (const col of required) {
+        if (!existing.has(col)) {
+          logger.warn(
+            `[context-mode] schema drift: column "${table}.${col}" is missing from ` +
+            "context-mode DB — session continuity may be degraded. Check context-mode version.",
+          );
+          ok = false;
+        }
+      }
+    }
+  } catch (err) {
+    // If we can't open the DB at all, log but don't block startup
+    logger.warn("[context-mode] schema compatibility check failed:", err);
+    ok = false;
+  } finally {
+    db?.close();
+  }
+
+  return ok;
 }
 
 // ---------------------------------------------------------------------------

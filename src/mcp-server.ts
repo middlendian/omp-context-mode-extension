@@ -13,6 +13,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { Tool as McpTool } from "@modelcontextprotocol/sdk/types.js";
 import type { ExtensionAPI, ExtensionContext, AgentToolResult } from "./types.js";
+import { verifySchemaCompat } from "./session/db.js";
 
 // ---------------------------------------------------------------------------
 // Server lifecycle
@@ -139,6 +140,9 @@ export async function initMcpServer(pi: ExtensionAPI, projectDir: string): Promi
 
   try {
     handle = await startContextModeServer(projectDir);
+    // After the server starts it initialises its SQLite DB. Verify our schema
+    // is still compatible so we detect context-mode version drift early.
+    verifySchemaCompat(projectDir, pi.logger);
     await registerMcpTools(pi, handle.client, handle.tools);
   } catch (err) {
     pi.logger.error(

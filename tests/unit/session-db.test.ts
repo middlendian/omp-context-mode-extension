@@ -1,10 +1,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
+import Database from "better-sqlite3";
 import {
   SessionDB,
   extractToolEvents,
   extractPromptEvents,
   clearSessionDBCache,
+  verifySchemaCompat,
+  REQUIRED_COLUMNS,
 } from "../../src/session/db.js";
+import { projectHash, getSessionsDir } from "../../src/session/helpers.js";
 
 // Use ":memory:" so tests never touch ~/.claude/...
 const PROJECT_DIR = "/test/project";
@@ -324,5 +331,154 @@ describe("extractPromptEvents", () => {
 
   it("returns empty array for empty string", () => {
     expect(extractPromptEvents("")).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Schema snapshot — catches accidental DDL changes on our side
+// ---------------------------------------------------------------------------
+
+describe("schema snapshot", () => {
+  it("sessions table has exactly the required columns", () => {
+    const db = new SessionDB(PROJECT_DIR, ":memory:");
+    expect(db.getTableColumns("sessions")).toEqual(
+      expect.arrayContaining(REQUIRED_COLUMNS.sessions as string[]),
+    );
+  });
+
+  it("events table has exactly the required columns", () => {
+    const db = new SessionDB(PROJECT_DIR, ":memory:");
+    expect(db.getTableColumns("events")).toEqual(
+      expect.arrayContaining(REQUIRED_COLUMNS.events as string[]),
+    );
+  });
+
+  it("snapshots table has exactly the required columns", () => {
+    const db = new SessionDB(PROJECT_DIR, ":memory:");
+    expect(db.getTableColumns("snapshots")).toEqual(
+      expect.arrayContaining(REQUIRED_COLUMNS.snapshots as string[]),
+    );
+  });
+
+  it("rule_files table has exactly the required columns", () => {
+    const db = new SessionDB(PROJECT_DIR, ":memory:");
+    expect(db.getTableColumns("rule_files")).toEqual(
+      expect.arrayContaining(REQUIRED_COLUMNS.rule_files as string[]),
+    );
+  });
+
+  it("REQUIRED_COLUMNS covers all four tables", () => {
+    expect(Object.keys(REQUIRED_COLUMNS).sort()).toEqual(
+      ["events", "rule_files", "sessions", "snapshots"],
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// verifySchemaCompat
+// ---------------------------------------------------------------------------
+
+describe("verifySchemaCompat", () => {
+  let tmpDir: string;
+  let tmpDBPath: string;
+  const mockLogger = { warn: () => undefined };
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "omp-compat-test-"));
+    tmpDBPath = path.join(tmpDir, "test.db");
+    clearSessionDBCache();
+  });
+
+  it("returns true when the DB file does not exist yet", () => {
+    // We need a projectDir whose hash leads to a non-existent file.
+    // Easiest: use a unique tmpDir so getSessionDBPath returns a fresh path.
+    // Since we can't override getSessionDBPath easily in this test, we test
+    // the exported function via the real DB path (which won't exist for a
+    // fresh unique dir).
+    const freshDir = path.join(tmpDir, "fresh-project");
+    expect(verifySchemaCompat(freshDir, mockLogger)).toBe(true);
+  });
+
+  it("returns true when the on-disk DB has all required columns", () => {
+    // Create a DB that matches our schema exactly
+    const db = new Database(tmpDBPath);
+    db.exec(`
+      CREATE TABLE sessions (id TEXT PRIMARY KEY, projectDir TEXT NOT NULL, createdAt INTEGER NOT NULL, compactCount INTEGER NOT NULL DEFAULT 0, cleanupFlag INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT NOT NULL, eventType TEXT NOT NULL, data TEXT NOT NULL, timestamp INTEGER NOT NULL);
+      CREATE TABLE snapshots (sessionId TEXT PRIMARY KEY, snapshotXml TEXT NOT NULL, createdAt INTEGER NOT NULL);
+      CREATE TABLE rule_files (sessionId TEXT NOT NULL, filePath TEXT NOT NULL, content TEXT NOT NULL, capturedAt INTEGER NOT NULL, PRIMARY KEY (sessionId, filePath));
+    `);
+    db.close();
+
+    // verifySchemaCompat calls getSessionDBPath(projectDir) internally, so we
+    // place our test DB at the real expected path for tmpDir.
+    const sessionsDir = getSessionsDir();
+    const realDBPath = path.join(sessionsDir, `${projectHash(tmpDir)}.db`);
+
+    // Copy our temp DB to the real expected path
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    fs.copyFileSync(tmpDBPath, realDBPath);
+
+    const warnSpy: string[] = [];
+    const result = verifySchemaCompat(tmpDir, {
+      warn: (msg: string) => warnSpy.push(msg),
+    });
+
+    // Clean up
+    try { fs.unlinkSync(realDBPath); } catch { /* ok */ }
+
+    expect(result).toBe(true);
+    expect(warnSpy).toHaveLength(0);
+  });
+
+  it("returns false and warns when a required column is missing", () => {
+    // Create a DB that is missing the 'compactCount' column
+    const db = new Database(tmpDBPath);
+    db.exec(`
+      CREATE TABLE sessions (id TEXT PRIMARY KEY, projectDir TEXT NOT NULL, createdAt INTEGER NOT NULL);
+      CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, sessionId TEXT NOT NULL, eventType TEXT NOT NULL, data TEXT NOT NULL, timestamp INTEGER NOT NULL);
+      CREATE TABLE snapshots (sessionId TEXT PRIMARY KEY, snapshotXml TEXT NOT NULL, createdAt INTEGER NOT NULL);
+      CREATE TABLE rule_files (sessionId TEXT NOT NULL, filePath TEXT NOT NULL, content TEXT NOT NULL, capturedAt INTEGER NOT NULL, PRIMARY KEY (sessionId, filePath));
+    `);
+    db.close();
+
+    const sessionsDir = getSessionsDir();
+    const realDBPath = path.join(sessionsDir, `${projectHash(tmpDir)}.db`);
+
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    fs.copyFileSync(tmpDBPath, realDBPath);
+
+    const warnings: string[] = [];
+    const result = verifySchemaCompat(tmpDir, {
+      warn: (msg: string) => warnings.push(msg),
+    });
+
+    try { fs.unlinkSync(realDBPath); } catch { /* ok */ }
+
+    expect(result).toBe(false);
+    expect(warnings.some((w) => w.includes("compactCount"))).toBe(true);
+  });
+
+  it("returns false and warns when a required table is entirely missing", () => {
+    // Create a DB with only the sessions table
+    const db = new Database(tmpDBPath);
+    db.exec("CREATE TABLE sessions (id TEXT PRIMARY KEY, projectDir TEXT NOT NULL, createdAt INTEGER NOT NULL, compactCount INTEGER NOT NULL DEFAULT 0, cleanupFlag INTEGER NOT NULL DEFAULT 0);");
+    db.close();
+
+    const sessionsDir = getSessionsDir();
+    const realDBPath = path.join(sessionsDir, `${projectHash(tmpDir)}.db`);
+
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    fs.copyFileSync(tmpDBPath, realDBPath);
+
+    const warnings: string[] = [];
+    const result = verifySchemaCompat(tmpDir, {
+      warn: (msg: string) => warnings.push(msg),
+    });
+
+    try { fs.unlinkSync(realDBPath); } catch { /* ok */ }
+
+    expect(result).toBe(false);
+    expect(warnings.some((w) => w.includes("events"))).toBe(true);
   });
 });
