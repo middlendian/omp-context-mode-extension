@@ -16,6 +16,21 @@ import type { ExtensionAPI, ExtensionContext, AgentToolResult } from "./types.js
 import { verifySchemaCompat } from "./session/db.js";
 
 // ---------------------------------------------------------------------------
+// Version pin
+// ---------------------------------------------------------------------------
+
+/**
+ * The exact context-mode version this extension has been validated against.
+ *
+ * Bump this ONLY after following docs/how-to-update-context-mode.md:
+ *   1. Check the npm changelog for schema or tool-name changes.
+ *   2. Update REQUIRED_COLUMNS in session/db.ts if any column changed.
+ *   3. Run `npm test` — all 200+ tests must pass.
+ *   4. Smoke-test a live OMP session (startup, compaction, resume).
+ */
+export const CONTEXT_MODE_VERSION = "1.0.15";
+
+// ---------------------------------------------------------------------------
 // Server lifecycle
 // ---------------------------------------------------------------------------
 
@@ -33,7 +48,7 @@ let handle: McpHandle | null = null;
 async function startContextModeServer(projectDir: string): Promise<McpHandle> {
   const transport = new StdioClientTransport({
     command: "npx",
-    args: ["--yes", "context-mode"],
+    args: ["--yes", `context-mode@${CONTEXT_MODE_VERSION}`],
     env: {
       ...process.env,
       // Tell context-mode which project it's operating on so it uses the
