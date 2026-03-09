@@ -53,13 +53,19 @@ export interface SessionSnapshot {
 
 const cache = new Map<string, SessionDB>();
 
-export function getSessionDB(projectDir: string): SessionDB {
-  let db = cache.get(projectDir);
+export function getSessionDB(projectDir: string, dbPathOverride?: string): SessionDB {
+  const key = dbPathOverride ?? projectDir;
+  let db = cache.get(key);
   if (!db) {
-    db = new SessionDB(projectDir);
-    cache.set(projectDir, db);
+    db = new SessionDB(projectDir, dbPathOverride);
+    cache.set(key, db);
   }
   return db;
+}
+
+/** Clear the module-level DB cache. Intended for use in tests only. */
+export function clearSessionDBCache(): void {
+  cache.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -69,9 +75,15 @@ export function getSessionDB(projectDir: string): SessionDB {
 export class SessionDB {
   private db: Database.Database;
 
-  constructor(projectDir: string) {
-    const dbPath = getSessionDBPath(projectDir);
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  /**
+   * @param projectDir  Project root — used to derive the DB file path.
+   * @param dbPathOverride  Override the DB path (e.g. ":memory:" for tests).
+   */
+  constructor(projectDir: string, dbPathOverride?: string) {
+    const dbPath = dbPathOverride ?? getSessionDBPath(projectDir);
+    if (dbPath !== ":memory:") {
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    }
     this.db = new Database(dbPath);
     this.db.pragma("journal_mode = WAL");
     this.db.pragma("synchronous = NORMAL");

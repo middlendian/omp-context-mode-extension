@@ -45,6 +45,7 @@ function captureRuleFiles(projectDir: string, sessionId: string, db: ReturnType<
 
 export function registerSessionStartHandler(pi: ExtensionAPI): void {
   pi.on("session_start", async (event: SessionStartEvent, ctx: ExtensionContext) => {
+    try {
     const projectDir = ctx.cwd;
     const sessionId = deriveSessionId(
       (event as { sessionId?: string }).sessionId,
@@ -55,7 +56,7 @@ export function registerSessionStartHandler(pi: ExtensionAPI): void {
 
     const sessionType = event.sessionType ?? "startup";
 
-    try {
+    {
       switch (sessionType) {
         case "startup": {
           // Fresh session — purge old data and start clean
@@ -132,6 +133,7 @@ export function registerSessionStartHandler(pi: ExtensionAPI): void {
           break;
         }
       }
+    } // end switch block
     } catch (err) {
       // session_start must never crash the session
       pi.logger.error("[context-mode] session_start error:", err);
