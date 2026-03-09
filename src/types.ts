@@ -151,11 +151,12 @@ export interface ToolCallEvent {
   params: Record<string, unknown>;
 }
 
-// Return from a pre-tool handler to block or modify execution
+// Return from a pre-tool handler to block or modify execution.
+// OMP uses { block: true, reason } for cancellation.
+// { modify } for parameter overrides is speculative — verify against OMP runtime.
 export type ToolCallDecision =
-  | { cancel: true; message: string }
+  | { block: true; reason: string }
   | { modify: Record<string, unknown> }
-  | { context: string }
   | void
   | undefined;
 
