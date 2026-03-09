@@ -1,4 +1,4 @@
-# omp-context-mode
+# @middlendian/omp-context-mode-extension
 
 An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrates [context-mode](https://github.com/mksglu/context-mode) — saving up to **98% of your context window** through sandboxed execution and session continuity across compactions.
 
@@ -25,16 +25,16 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 
 ```sh
 # Install the extension package
-npm install -g omp-context-mode
+npm install -g @middlendian/omp-context-mode-extension
 
 # Register it with OMP (adds to ~/.omp/agent/extensions/)
-omp extension add omp-context-mode
+omp extension add @middlendian/omp-context-mode-extension
 ```
 
 ### Option B — from source
 
 ```sh
-git clone https://github.com/YOUR_ORG/omp-context-mode-extension
+git clone https://github.com/middlendian/omp-context-mode-extension
 cd omp-context-mode-extension
 npm install
 npm run build
@@ -42,8 +42,8 @@ npm run build
 # Point OMP at the built extension
 omp extension add ./dist/index.js
 # or copy to the user extensions directory:
-mkdir -p ~/.omp/agent/extensions/omp-context-mode
-cp -r dist package.json ~/.omp/agent/extensions/omp-context-mode/
+mkdir -p ~/.omp/agent/extensions/omp-context-mode-extension
+cp -r dist package.json ~/.omp/agent/extensions/omp-context-mode-extension/
 ```
 
 ### Option C — project-level (per-repo)
@@ -51,7 +51,7 @@ cp -r dist package.json ~/.omp/agent/extensions/omp-context-mode/
 Drop this into your project root:
 
 ```sh
-git clone https://github.com/YOUR_ORG/omp-context-mode-extension .omp/extensions/context-mode
+git clone https://github.com/middlendian/omp-context-mode-extension .omp/extensions/context-mode
 cd .omp/extensions/context-mode
 npm install && npm run build
 ```
