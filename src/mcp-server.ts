@@ -102,7 +102,8 @@ async function registerMcpTools(pi: ExtensionAPI, client: Client, tools: McpTool
         );
 
         // Stream any intermediate content
-        const content = result.content ?? [];
+        // MCP SDK types result.content as {} — cast to known shape
+        const content = (result.content ?? []) as Array<{ type: string; text: string }>;
         const textParts: string[] = [];
 
         for (const part of content) {
