@@ -116,6 +116,18 @@ export interface SessionStartEvent {
 export interface SessionCompactEvent {
   sessionId?: string;
   reason?: string;
+  /** Messages being summarised during compaction */
+  messagesToSummarize?: unknown[];
+  /** Messages kept verbatim as turn prefix */
+  turnPrefixMessages?: unknown[];
+  /** Token count before compaction */
+  tokensBefore?: number;
+  /** Entry ID of the oldest kept message */
+  firstKeptEntryId?: string;
+  /** Prior session summary text */
+  previousSummary?: string;
+  /** Abort signal — honour if doing async work */
+  signal?: AbortSignal;
 }
 
 export interface SessionSwitchEvent {
