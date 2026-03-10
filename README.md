@@ -15,8 +15,8 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 
 ## Requirements
 
-- **oh-my-pi** installed (`npm install -g oh-my-pi` or from the OMP repo)
-- **Node.js ≥ 18** (for `npx`)
+- **oh-my-pi** installed
+- **Node.js ≥ 24**
 - **context-mode** reachable via `npx` (installed automatically on first use)
 
 ## Installation
@@ -144,6 +144,6 @@ src/
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+GPLv3 — see [LICENSE](LICENSE).
 
 context-mode is licensed under [Elastic-2.0](https://github.com/mksglu/context-mode/blob/main/LICENSE).
