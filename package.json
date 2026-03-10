@@ -1,6 +1,6 @@
 {
   "name": "@middlendian/omp-context-mode-extension",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
   "description": "context-mode integration for oh-my-pi (OMP) — saves up to 98% of context window via sandboxed execution and session continuity",
   "engines": {
