@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "context-mode integration for oh-my-pi (OMP) — saves up to 98% of context window via sandboxed execution and session continuity",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/middlendian/omp-context-mode-extension.git"
@@ -52,7 +55,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "7.6.13",
-    "@types/node": "22.19.15",
+    "@types/node": "24.12.0",
     "@vitest/coverage-v8": "4.0.18",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
