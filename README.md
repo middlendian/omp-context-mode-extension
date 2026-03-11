@@ -24,12 +24,12 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 ### Option A — from npm (recommended)
 
 ```sh
-# Install the extension package globally
-npm install -g @oh-my-pi/pi-coding-agent  # install OMP first if not already installed
 PUPPETEER_SKIP_DOWNLOAD=true npm install -g @middlendian/omp-context-mode-extension
 
-# Register it with OMP by pointing config at the global install
-omp config set extensions "[\"$(npm root -g)/@middlendian/omp-context-mode-extension/dist/index.js\"]"
+# Symlink into OMP's user extensions directory so it is auto-discovered
+mkdir -p ~/.omp/agent/extensions
+ln -sf "$(npm root -g)/@middlendian/omp-context-mode-extension" \
+       ~/.omp/agent/extensions/omp-context-mode-extension
 ```
 
 ### Option B — from source
@@ -40,25 +40,18 @@ cd omp-context-mode-extension
 npm install
 npm run build
 
-# Symlink the source directory into the OMP user extensions folder
-# (symlinking preserves access to node_modules required by the extension)
+# Symlink the source directory so OMP auto-discovers it and node_modules stay accessible
 mkdir -p ~/.omp/agent/extensions
 ln -sf "$(pwd)" ~/.omp/agent/extensions/omp-context-mode-extension
 ```
 
-Alternatively, register via config (works per-session or persistently):
+For a single session only, use the `-e` flag instead:
 
 ```sh
-# Persistent (saved to ~/.omp/agent/config.yml):
-omp config set extensions "[\"$(pwd)/dist/index.js\"]"
-
-# Per-session only:
 omp -e ./dist/index.js
 ```
 
 ### Option C — project-level (per-repo)
-
-Drop this into your project root:
 
 ```sh
 git clone https://github.com/middlendian/omp-context-mode-extension .omp/extensions/context-mode
@@ -66,7 +59,14 @@ cd .omp/extensions/context-mode
 npm install && npm run build
 ```
 
-OMP auto-discovers extensions in `<cwd>/.omp/extensions/`.
+OMP auto-discovers extensions under `<cwd>/.omp/extensions/`.
+
+### Verifying the installation
+
+Start OMP and run `/extensions` to open the Extension Control Center. The
+`omp-context-mode-extension` entry should appear in the list with a green
+enabled indicator. If it is missing, check that the symlink target exists and
+that `dist/index.js` is present (run `npm run build` if not).
 
 ---
 
