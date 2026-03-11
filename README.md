@@ -24,7 +24,7 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 ### Option A — from npm (recommended)
 
 ```sh
-PUPPETEER_SKIP_DOWNLOAD=true npm install -g @middlendian/omp-context-mode-extension
+npm install -g @middlendian/omp-context-mode-extension
 ```
 
 The `postinstall` script automatically creates
@@ -38,13 +38,8 @@ cd omp-context-mode-extension
 npm install && npm run build
 ```
 
-Because this is run from within the package directory itself, the `postinstall`
-script skips the auto-symlink (it would be self-referential). Create it manually:
-
-```sh
-mkdir -p ~/.omp/agent/extensions
-ln -sf "$(pwd)" ~/.omp/agent/extensions/omp-context-mode-extension
-```
+The `postinstall` script creates `.omp/extensions/omp-context-mode-extension`
+inside the cloned directory, so OMP will auto-discover it when run from there.
 
 For a single session only, use the `-e` flag instead:
 

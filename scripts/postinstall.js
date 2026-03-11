@@ -20,9 +20,6 @@ if (isGlobal) {
 } else {
   // Project-level: <project-root>/.omp/extensions
   const projectRoot = process.env.npm_config_local_prefix ?? process.cwd();
-  // Avoid a self-referential symlink when running `npm install` inside the
-  // package directory itself (e.g. during development / after `git clone`).
-  if (resolve(projectRoot) === pkgDir) process.exit(0);
   extensionsDir = join(projectRoot, ".omp", "extensions");
 }
 

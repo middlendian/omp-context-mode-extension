@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "description": "context-mode integration for oh-my-pi (OMP) — saves up to 98% of context window via sandboxed execution and session continuity",
+  "license": "GPL-3.0-only",
   "engines": {
     "node": ">=18.0.0"
   },
