@@ -15,8 +15,8 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 
 ## Requirements
 
-- **oh-my-pi** installed
-- **Node.js ≥ 24**
+- **oh-my-pi** installed (`npm install -g @oh-my-pi/pi-coding-agent`)
+- **Node.js ≥ 18** (for `npm install` / `npm run build`)
 - **context-mode** reachable via `npx` (installed automatically on first use)
 
 ## Installation
@@ -24,11 +24,12 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 ### Option A — from npm (recommended)
 
 ```sh
-# Install the extension package
-npm install -g @middlendian/omp-context-mode-extension
+# Install the extension package globally
+npm install -g @oh-my-pi/pi-coding-agent  # install OMP first if not already installed
+PUPPETEER_SKIP_DOWNLOAD=true npm install -g @middlendian/omp-context-mode-extension
 
-# Register it with OMP (adds to ~/.omp/agent/extensions/)
-omp extension add @middlendian/omp-context-mode-extension
+# Register it with OMP by pointing config at the global install
+omp config set extensions "[\"$(npm root -g)/@middlendian/omp-context-mode-extension/dist/index.js\"]"
 ```
 
 ### Option B — from source
@@ -39,11 +40,20 @@ cd omp-context-mode-extension
 npm install
 npm run build
 
-# Point OMP at the built extension
-omp extension add ./dist/index.js
-# or copy to the user extensions directory:
-mkdir -p ~/.omp/agent/extensions/omp-context-mode-extension
-cp -r dist package.json ~/.omp/agent/extensions/omp-context-mode-extension/
+# Symlink the source directory into the OMP user extensions folder
+# (symlinking preserves access to node_modules required by the extension)
+mkdir -p ~/.omp/agent/extensions
+ln -sf "$(pwd)" ~/.omp/agent/extensions/omp-context-mode-extension
+```
+
+Alternatively, register via config (works per-session or persistently):
+
+```sh
+# Persistent (saved to ~/.omp/agent/config.yml):
+omp config set extensions "[\"$(pwd)/dist/index.js\"]"
+
+# Per-session only:
+omp -e ./dist/index.js
 ```
 
 ### Option C — project-level (per-repo)
