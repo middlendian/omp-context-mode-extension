@@ -15,8 +15,8 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 
 ## Requirements
 
-- **oh-my-pi** installed
-- **Node.js ≥ 24**
+- **oh-my-pi** installed (`npm install -g @oh-my-pi/pi-coding-agent`)
+- **Node.js ≥ 18** (for `npm install` / `npm run build`)
 - **context-mode** reachable via `npx` (installed automatically on first use)
 
 ## Installation
@@ -24,31 +24,30 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 ### Option A — from npm (recommended)
 
 ```sh
-# Install the extension package
 npm install -g @middlendian/omp-context-mode-extension
-
-# Register it with OMP (adds to ~/.omp/agent/extensions/)
-omp extension add @middlendian/omp-context-mode-extension
 ```
+
+The `postinstall` script automatically creates
+`~/.omp/agent/extensions/omp-context-mode-extension → <global-package-dir>`.
 
 ### Option B — from source
 
 ```sh
 git clone https://github.com/middlendian/omp-context-mode-extension
 cd omp-context-mode-extension
-npm install
-npm run build
+npm install && npm run build
+```
 
-# Point OMP at the built extension
-omp extension add ./dist/index.js
-# or copy to the user extensions directory:
-mkdir -p ~/.omp/agent/extensions/omp-context-mode-extension
-cp -r dist package.json ~/.omp/agent/extensions/omp-context-mode-extension/
+The `postinstall` script creates `.omp/extensions/omp-context-mode-extension`
+inside the cloned directory, so OMP will auto-discover it when run from there.
+
+For a single session only, use the `-e` flag instead:
+
+```sh
+omp -e ./dist/index.js
 ```
 
 ### Option C — project-level (per-repo)
-
-Drop this into your project root:
 
 ```sh
 git clone https://github.com/middlendian/omp-context-mode-extension .omp/extensions/context-mode
@@ -56,7 +55,18 @@ cd .omp/extensions/context-mode
 npm install && npm run build
 ```
 
-OMP auto-discovers extensions in `<cwd>/.omp/extensions/`.
+The `postinstall` script creates `.omp/extensions/omp-context-mode-extension`
+in the parent project. OMP auto-discovers all extensions under `<cwd>/.omp/extensions/`.
+
+### Verifying the installation
+
+Start OMP and run `/extensions` to open the Extension Control Center. The
+`omp-context-mode-extension` entry should appear with a green enabled indicator.
+If it is missing, check that the symlink target exists and that `dist/index.js`
+is present (`npm run build` if not).
+
+> **Skipping the postinstall script:** `npm install --ignore-scripts` will bypass
+> the symlink creation; run the manual `ln -sf` from Option B above in that case.
 
 ---
 

@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "type": "module",
   "description": "context-mode integration for oh-my-pi (OMP) — saves up to 98% of context window via sandboxed execution and session continuity",
+  "license": "GPL-3.0-only",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
@@ -23,11 +24,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "postinstall": "node scripts/postinstall.js",
     "prepublishOnly": "npm run build"
   },
   "files": [
     "dist",
     "docs",
+    "scripts",
     "README.md",
     "LICENSE"
   ],
@@ -45,7 +48,7 @@
   },
   "peerDependenciesMeta": {
     "context-mode": {
-      "optional": false
+      "optional": true
     }
   },
   "dependencies": {
