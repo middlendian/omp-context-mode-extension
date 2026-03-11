@@ -25,22 +25,23 @@ An [oh-my-pi (OMP)](https://github.com/can1357/oh-my-pi) extension that integrat
 
 ```sh
 PUPPETEER_SKIP_DOWNLOAD=true npm install -g @middlendian/omp-context-mode-extension
-
-# Symlink into OMP's user extensions directory so it is auto-discovered
-mkdir -p ~/.omp/agent/extensions
-ln -sf "$(npm root -g)/@middlendian/omp-context-mode-extension" \
-       ~/.omp/agent/extensions/omp-context-mode-extension
 ```
+
+The `postinstall` script automatically creates
+`~/.omp/agent/extensions/omp-context-mode-extension → <global-package-dir>`.
 
 ### Option B — from source
 
 ```sh
 git clone https://github.com/middlendian/omp-context-mode-extension
 cd omp-context-mode-extension
-npm install
-npm run build
+npm install && npm run build
+```
 
-# Symlink the source directory so OMP auto-discovers it and node_modules stay accessible
+Because this is run from within the package directory itself, the `postinstall`
+script skips the auto-symlink (it would be self-referential). Create it manually:
+
+```sh
 mkdir -p ~/.omp/agent/extensions
 ln -sf "$(pwd)" ~/.omp/agent/extensions/omp-context-mode-extension
 ```
@@ -59,14 +60,18 @@ cd .omp/extensions/context-mode
 npm install && npm run build
 ```
 
-OMP auto-discovers extensions under `<cwd>/.omp/extensions/`.
+The `postinstall` script creates `.omp/extensions/omp-context-mode-extension`
+in the parent project. OMP auto-discovers all extensions under `<cwd>/.omp/extensions/`.
 
 ### Verifying the installation
 
 Start OMP and run `/extensions` to open the Extension Control Center. The
-`omp-context-mode-extension` entry should appear in the list with a green
-enabled indicator. If it is missing, check that the symlink target exists and
-that `dist/index.js` is present (run `npm run build` if not).
+`omp-context-mode-extension` entry should appear with a green enabled indicator.
+If it is missing, check that the symlink target exists and that `dist/index.js`
+is present (`npm run build` if not).
+
+> **Skipping the postinstall script:** `npm install --ignore-scripts` will bypass
+> the symlink creation; run the manual `ln -sf` from Option B above in that case.
 
 ---
 

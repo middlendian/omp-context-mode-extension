@@ -23,11 +23,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "postinstall": "node scripts/postinstall.js",
     "prepublishOnly": "npm run build"
   },
   "files": [
     "dist",
     "docs",
+    "scripts",
     "README.md",
     "LICENSE"
   ],
